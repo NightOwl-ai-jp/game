@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🔥 Emoji Rush: Viral Tap 🔥</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: white;
+            position: relative;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+            animation: bgFloat 8s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes bgFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(1deg); }
+        }
+        
+        #gameCanvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: transparent;
+        }
+        
+        /* UI Elements */
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .ui-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .score-display {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: clamp(16px, 4vw, 24px);
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .combo-display {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: bold;
+            animation: comboGlow 0.5s ease-in-out infinite alternate;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .combo-display.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        @keyframes comboGlow {
+            from { box-shadow: 0 0 20px rgba(255, 107, 107, 0.5); }
+            to { box-shadow: 0 0 30px rgba(255, 107, 107, 0.8); }
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        /* Floating Score Animation */
+        .floating-score {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 20;
+            animation: floatUp 1s ease-out forwards;
+        }
+        
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1.5);
+            }
+        }
+        
+        /* Power-up Button */
+        #powerUpBtn {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #ff9a9e, #fecfef);
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 154, 158, 0.4);
+        }
+        
+        #powerUpBtn:hover {
+            transform: translateX(-50%) translateY(-5px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(255, 154, 158, 0.6);
+        }
+        
+        #powerUpBtn:active {
+            transform: translateX(-50%) translateY(-2px) scale(0.98);
+        }
+        
+        #powerUpBtn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .title {
+            font-size: clamp(32px, 10vw, 64px);
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 
+                0 0 10px #ff00ff,
+                0 0 20px #ff00ff,
+                0 0 30px #ff00ff,
+                2px 2px 0px #00ff00,
+                -2px -2px 0px #00ffff;
+            margin-bottom: 10px;
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes titlePulse {
+            0%, 100% { 
+                transform: scale(1);
+                text-shadow: 
+                    0 0 10px #ff00ff,
+                    0 0 20px #ff00ff,
+                    0 0 30px #ff00ff,
+                    2px 2px 0px #00ff00,
+                    -2px -2px 0px #00ffff;
+            }
+            50% { 
+                transform: scale(1.05);
+                text-shadow: 
+                    0 0 15px #ff00ff,
+                    0 0 30px #ff00ff,
+                    0 0 45px #ff00ff,
+                    3px 3px 0px #00ff00,
+                    -3px -3px 0px #00ffff;
+            }
+        }
+        
+        .subtitle {
+            font-size: clamp(18px, 5vw, 28px);
+            color: #fff;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .start-btn {
+            padding: 20px 50px;
+            font-size: clamp(20px, 5vw, 32px);
+            font-weight: bold;
+            border: 3px solid #ff00ff;
+            background: linear-gradient(45deg, #ff00ff, #ff6b6b);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 20px rgba(255, 0, 255, 0.5),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            animation: btnGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes btnGlow {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 20px rgba(255, 0, 255, 0.5),
+                    inset 0 0 20px rgba(255, 255, 255, 0.1);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 30px rgba(255, 0, 255, 0.8),
+                    0 0 40px rgba(255, 107, 107, 0.6),
+                    inset 0 0 20px rgba(255, 255, 255, 0.2);
+            }
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            background: linear-gradient(45deg, #ff6b6b, #ff00ff);
+        }
+        
+        .start-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+        
+        .instructions {
+            font-size: clamp(14px, 3.5vw, 18px);
+            color: #fff;
+            line-height: 1.8;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 0, 255, 0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .social-share {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .share-btn {
+            padding: 12px 20px;
+            border: 2px solid #00ff00;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-shadow: 0 0 5px #00ff00;
+        }
+        
+        .share-btn:hover {
+            background: rgba(0, 255, 0, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.3);
+        }
+        
+        /* Particle Effects */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #ui {
+                top: 15px;
+                left: 15px;
+                right: 15px;
+            }
+            
+            .score-display {
+                padding: 10px 16px;
+                font-size: 18px;
+            }
+            
+            #powerUpBtn {
+                bottom: 20px;
+                padding: 12px 25px;
+                font-size: 16px;
+            }
+            
+            .ui-row {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .hidden { 
+            display: none !important; 
+        }
+        
+        /* Special Effects */
+        .screen-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .rainbow-mode {
+            animation: rainbowBg 2s linear infinite;
+        }
+        
+        @keyframes rainbowBg {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- UI Elements -->
+    <div id="ui">
+        <div class="ui-row">
+            <div class="score-display" id="scoreDisplay">
+                🔥 0
+            </div>
+            <div class="score-display" id="timeDisplay">
+                ⏰ 30s
+            </div>
+        </div>
+        <div class="ui-row">
+            <div class="combo-display" id="comboDisplay">
+                COMBO x1
+            </div>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+    
+    <!-- Power-up Button -->
+    <button id="powerUpBtn">⚡ MEGA BOOST ⚡</button>
+    
+    <!-- Audio Controls -->
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+        <button id="musicToggle" style="background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 20px; margin-right: 5px; cursor: pointer;">🎵</button>
+        <button id="sfxToggle" style="background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 20px; cursor: pointer;">🔊</button>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="screen">
+        <div class="title">🔥 EMOJI RUSH 🔥</div>
+        <div class="subtitle">Viral Tap Challenge</div>
+        
+        <!-- Point System Guide -->
+        <div style="background: rgba(0,0,0,0.9); padding: 25px; border-radius: 20px; margin: 25px 0; max-width: 380px; border: 3px solid rgba(255,0,255,0.5); box-shadow: 0 0 30px rgba(255,0,255,0.3);">
+            <div style="font-size: clamp(18px, 4vw, 24px); color: #fff; margin-bottom: 20px; font-weight: bold; text-align: center; text-shadow: 0 0 10px #ff00ff;">📊 得点システム</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(72,219,251,0.2); border-radius: 10px; border: 2px solid #48DBFB;">
+                <span style="font-size: 28px;">😀😂🥰</span>
+                <span style="color: #48DBFB; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #48DBFB;">15点 (コモン)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,107,107,0.2); border-radius: 10px; border: 2px solid #FF6B6B;">
+                <span style="font-size: 28px;">🔥💎🌟</span>
+                <span style="color: #FF6B6B; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #FF6B6B;">60点 (レア)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,215,0,0.2); border-radius: 10px; border: 2px solid #FFD700;">
+                <span style="font-size: 28px;">🏆💰🎯</span>
+                <span style="color: #FFD700; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #FFD700;">250点 (レジェンド)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,0,0,0.3); border-radius: 10px; border: 3px solid #ff0000; animation: dangerPulse 1.5s infinite;">
+                <span style="font-size: 28px;">💀☠️💣</span>
+                <span style="color: #ff0000; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #ff0000;">即死 (ゲームオーバー)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,102,0,0.2); border-radius: 10px; border: 2px solid #ff6600;">
+                <span style="font-size: 28px;">👹👺🤖</span>
+                <span style="color: #ff6600; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #ff6600;">-100点 (マイナス)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(102,0,255,0.2); border-radius: 10px; border: 2px solid #6600ff;">
+                <span style="font-size: 28px;">🌪️⚡🌊</span>
+                <span style="color: #6600ff; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #6600ff;">嵐 (画面妨害)</span>
+            </div>
+            <div style="font-size: clamp(12px, 2.5vw, 16px); color: #fff; margin-top: 15px; text-align: center; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;">
+                ⏰ 制限時間: <span style="color: #ff00ff; font-weight: bold;">30秒</span><br>
+                🔥 コンボで得点倍増！<br>
+                💀 赤い敵は即死！<br>
+                👹 オレンジの敵は-100点！<br>
+                🌪️ 紫の敵は画面妨害！
+            </div>
+        </div>
+        
+        @keyframes dangerPulse {
+            0%, 100% { 
+                border-color: #ff0000;
+                box-shadow: 0 0 10px rgba(255,0,0,0.5);
+            }
+            50% { 
+                border-color: #ff6666;
+                box-shadow: 0 0 20px rgba(255,0,0,0.8);
+            }
+        }
+        
+        @keyframes stormPulse {
+            0%, 100% { 
+                opacity: 0.6;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8;
+                transform: scale(1.02);
+            }
+        }
+        
+        <button class="start-btn" id="startBtn">🚀 START TAPPING 🚀</button>
+        <div class="instructions">
+            📱 タップしてエモジをキャッチ！<br>
+            🎯 コンボを繋げてスコアアップ<br>
+            💀 赤い敵は即死、避けよう！<br>
+            👹 オレンジの敵は-100点<br>
+            �️ 紫の敵は高画面が見づらくなる<br>
+            ⚡ パワーアップで大爆発<br>
+            🏆 30秒で最高スコアを目指そう！
+        </div>
+        <div class="social-share">
+            <button class="share-btn" onclick="shareGame()">📤 シェア</button>
+            <button class="share-btn" onclick="showLeaderboard()">🏆 ランキング</button>
+        </div>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="screen hidden">
+        <div class="title">🎉 GAME OVER 🎉</div>
+        <div class="subtitle" id="finalScore">Score: 0</div>
+        <div class="subtitle" id="rankMessage"></div>
+        <button class="start-btn" id="restartBtn">🔄 RETRY</button>
+        <div class="social-share">
+            <button class="share-btn" onclick="shareScore()">📤 スコアをシェア</button>
+            <button class="share-btn" onclick="challengeFriend()">👥 友達に挑戦</button>
+        </div>
+    </div>
+
+    <script>
+        // ===== AUDIO SYSTEM =====
+        const AUDIO = {
+            context: null,
+            sounds: {},
+            musicEnabled: true,
+            sfxEnabled: true,
+            
+            // Web Audio API で軽量な音を生成
+            init() {
+                try {
+                    this.context = new (window.AudioContext || window.webkitAudioContext)();
+                    this.createSounds();
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            },
+            
+            createSounds() {
+                // タップ音（周波数で生成）
+                this.sounds.tap = this.createTone(800, 0.1, 'sine');
+                this.sounds.combo = this.createTone(1200, 0.15, 'square');
+                this.sounds.powerup = this.createTone(600, 0.3, 'sawtooth');
+                this.sounds.rare = this.createTone(1000, 0.2, 'triangle');
+                this.sounds.legendary = this.createChord([800, 1000, 1200], 0.4);
+            },
+            
+            createTone(frequency, duration, type = 'sine') {
+                return () => {
+                    if (!this.sfxEnabled || !this.context) return;
+                    
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+                    oscillator.type = type;
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+                    
+                    oscillator.start(this.context.currentTime);
+                    oscillator.stop(this.context.currentTime + duration);
+                };
+            },
+            
+            createChord(frequencies, duration) {
+                return () => {
+                    frequencies.forEach(freq => {
+                        this.createTone(freq, duration)();
+                    });
+                };
+            },
+            
+            // 背景音楽（ループする軽量メロディ）
+            startBackgroundMusic() {
+                if (!this.musicEnabled || !this.context) return;
+                
+                const melody = [523, 587, 659, 698, 784, 880, 988, 1047]; // C major scale
+                let noteIndex = 0;
+                
+                const playNote = () => {
+                    if (!this.musicEnabled) return;
+                    
+                    const freq = melody[noteIndex % melody.length];
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.frequency.setValueAtTime(freq, this.context.currentTime);
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.02, this.context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
+                    
+                    oscillator.start(this.context.currentTime);
+                    oscillator.stop(this.context.currentTime + 0.5);
+                    
+                    noteIndex++;
+                    setTimeout(playNote, 600);
+                };
+                
+                playNote();
+            },
+            
+            play(soundName) {
+                if (this.sounds[soundName]) {
+                    this.sounds[soundName]();
+                }
+            }
+        };
+
+        // ===== GAME CONFIGURATION =====
+        const CONFIG = {
+            EMOJI_SPAWN_RATE: 1000,
+            EMOJI_SPEED: 2.5,
+            ENEMY_SPAWN_RATE: 3500,
+            ENEMY_SPEED: 1.8,
+            COMBO_TIMEOUT: 2000,
+            POWER_UP_COST: 80,
+            POWER_UP_DURATION: 5000,
+            TARGET_FPS: 60,
+            GAME_TIME: 30000, // 30秒
+            MAX_EMOJIS: 6, // 最大エモジ数（少し減らして見やすく）
+            MAX_ENEMIES: 2, // 最大敵数（バランス調整）
+            MAX_PARTICLES: 25, // 最大パーティクル数
+            EMOJIS: {
+                common: ['😀', '😂', '🥰', '😎', '🤩', '😍', '🙌', '👏', '💖', '✨'],
+                rare: ['🔥', '💎', '🌟', '🎉', '🚀', '⚡', '🌈', '🦄', '👑', '💫'],
+                legendary: ['🏆', '💰', '🎯', '🎪', '🎭', '🎨', '🎵', '🎸', '🎤', '🎬']
+            },
+            ENEMIES: ['💀', '👹', '�', '🤖', '�', '☠️', '💣', '⚡', '�️', '🔥'],
+            RARITY_CHANCES: {
+                common: 0.65,
+                rare: 0.28,
+                legendary: 0.07
+            },
+            POINTS: {
+                common: 15,
+                rare: 60,
+                legendary: 250
+            }
+        };
+
+        // ===== GAME STATE =====
+        const game = {
+            canvas: null,
+            ctx: null,
+            width: 0,
+            height: 0,
+            running: false,
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            level: 1,
+            progress: 0,
+            emojis: [],
+            enemies: [],
+            particles: [],
+            powerUpActive: false,
+            powerUpEnergy: 0,
+            lastSpawn: 0,
+            lastEnemySpawn: 0,
+            frameCount: 0,
+            comboTimer: null,
+            touchEffects: [],
+            screenShake: 0,
+            rainbowMode: false,
+            gameStartTime: 0,
+            timeRemaining: 0
+        };
+
+        // ===== UTILITY FUNCTIONS =====
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function randomChoice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+
+        function lerp(start, end, factor) {
+            return start + (end - start) * factor;
+        }
+
+        // ===== ENEMY CLASS =====
+        class Enemy {
+            constructor() {
+                this.x = random(50, game.width - 50);
+                this.y = -50;
+                this.size = random(35, 70);
+                this.speed = CONFIG.ENEMY_SPEED + random(-0.3, 0.8);
+                this.rotation = 0;
+                this.rotationSpeed = random(-0.15, 0.15);
+                this.wobble = random(0, Math.PI * 2);
+                this.wobbleSpeed = random(0.03, 0.08);
+                this.scale = 1;
+                this.alpha = 1;
+                this.destroyed = false;
+                this.pulsePhase = random(0, Math.PI * 2);
+                
+                // 敵の種類を決定（危険な敵の出現率を下げる）
+                const rand = Math.random();
+                if (rand < 0.25) {
+                    this.type = 'danger';
+                    this.emoji = randomChoice(['💀', '☠️', '💣']);
+                    this.glowColor = '#ff0000';
+                    this.effect = 'gameover';
+                } else if (rand < 0.65) {
+                    this.type = 'minus';
+                    this.emoji = randomChoice(['👹', '👺', '🤖']);
+                    this.glowColor = '#ff6600';
+                    this.effect = 'minus';
+                } else {
+                    this.type = 'storm';
+                    this.emoji = randomChoice(['🌪️', '⚡', '🌊']);
+                    this.glowColor = '#6600ff';
+                    this.effect = 'storm';
+                }
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotationSpeed;
+                this.wobble += this.wobbleSpeed;
+                this.pulsePhase += 0.1;
+                
+                // Wobble effect
+                this.x += Math.sin(this.wobble) * 0.8;
+                
+                // Pulsing scale
+                this.scale = 1 + Math.sin(this.pulsePhase) * 0.15;
+                
+                // Remove if off screen (with buffer)
+                return this.y < game.height + 50 && !this.destroyed;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.scale(this.scale, this.scale);
+                
+                // Red glow effect
+                ctx.shadowColor = this.glowColor;
+                ctx.shadowBlur = 25;
+                
+                // Draw enemy emoji
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.globalAlpha = this.alpha;
+                ctx.fillText(this.emoji, 0, 0);
+                
+                // Draw danger indicator based on type
+                ctx.shadowBlur = 0;
+                ctx.font = `${Math.floor(this.size * 0.25)}px Arial`;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                
+                let warningText = '';
+                if (this.type === 'danger') {
+                    ctx.fillStyle = '#ff0000';
+                    warningText = 'DANGER';
+                } else if (this.type === 'minus') {
+                    ctx.fillStyle = '#ff6600';
+                    warningText = 'MINUS';
+                } else if (this.type === 'storm') {
+                    ctx.fillStyle = '#6600ff';
+                    warningText = 'STORM';
+                }
+                
+                ctx.strokeText(warningText, 0, this.size * 0.6);
+                ctx.fillText(warningText, 0, this.size * 0.6);
+                
+                ctx.restore();
+            }
+
+            checkTap(x, y) {
+                const dist = distance(x, y, this.x, this.y);
+                return dist < this.size / 2 + 20;
+            }
+
+            destroy(x, y) {
+                if (this.destroyed) return;
+                
+                this.destroyed = true;
+                
+                // 敵の種類に応じた効果
+                if (this.type === 'danger') {
+                    // ゲームオーバー
+                    AUDIO.play('rare');
+                    gameOver();
+                    return;
+                } else if (this.type === 'minus') {
+                    // マイナスポイント
+                    AUDIO.play('combo');
+                    game.score = Math.max(0, game.score - 100);
+                    game.combo = 0;
+                    document.getElementById('comboDisplay').classList.remove('active');
+                    
+                    // マイナスポイント表示
+                    const minusElement = document.createElement('div');
+                    minusElement.className = 'floating-score';
+                    minusElement.textContent = '-100';
+                    minusElement.style.left = `${x - 30}px`;
+                    minusElement.style.top = `${y - 20}px`;
+                    minusElement.style.color = '#ff6600';
+                    minusElement.style.fontSize = '24px';
+                    document.body.appendChild(minusElement);
+                    
+                    setTimeout(() => {
+                        if (document.body.contains(minusElement)) {
+                            document.body.removeChild(minusElement);
+                        }
+                    }, 1000);
+                    
+                } else if (this.type === 'storm') {
+                    // 画面エフェクト
+                    AUDIO.play('powerup');
+                    game.combo = 0;
+                    document.getElementById('comboDisplay').classList.remove('active');
+                    
+                    // 画面を一時的に見づらくする
+                    activateStormEffect();
+                }
+                
+                // 共通エフェクト
+                for (let i = 0; i < 5; i++) {
+                    if (game.particles.length >= CONFIG.MAX_PARTICLES) break;
+                    game.particles.push(new Particle(x, y, 'common', this.glowColor));
+                }
+                
+                // Screen shake
+                game.screenShake = 8;
+                
+                // Haptic feedback
+                if ('vibrate' in navigator) {
+                    if (this.type === 'danger') {
+                        navigator.vibrate([200, 100, 200, 100, 200]);
+                    } else {
+                        navigator.vibrate([100, 50, 100]);
+                    }
+                }
+            }
+        }
+
+        // ===== EMOJI CLASS =====
+        class Emoji {
+            constructor() {
+                this.x = random(50, game.width - 50);
+                this.y = -50;
+                this.size = random(40, 80);
+                this.speed = CONFIG.EMOJI_SPEED + random(-0.5, 1.5);
+                this.rotation = 0;
+                this.rotationSpeed = random(-0.1, 0.1);
+                this.wobble = random(0, Math.PI * 2);
+                this.wobbleSpeed = random(0.02, 0.05);
+                this.scale = 1;
+                this.alpha = 1;
+                this.collected = false;
+                
+                // Determine rarity and emoji
+                const rand = Math.random();
+                if (rand < CONFIG.RARITY_CHANCES.legendary) {
+                    this.rarity = 'legendary';
+                    this.emoji = randomChoice(CONFIG.EMOJIS.legendary);
+                    this.glowColor = '#FFD700';
+                } else if (rand < CONFIG.RARITY_CHANCES.legendary + CONFIG.RARITY_CHANCES.rare) {
+                    this.rarity = 'rare';
+                    this.emoji = randomChoice(CONFIG.EMOJIS.rare);
+                    this.glowColor = '#FF6B6B';
+                } else {
+                    this.rarity = 'common';
+                    this.emoji = randomChoice(CONFIG.EMOJIS.common);
+                    this.glowColor = '#48DBFB';
+                }
+                
+                this.points = CONFIG.POINTS[this.rarity];
+                
+                // Power-up mode effects
+                if (game.powerUpActive) {
+                    this.speed *= 0.7;
+                    this.points *= 2;
+                    this.size *= 1.2;
+                }
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotationSpeed;
+                this.wobble += this.wobbleSpeed;
+                
+                // Wobble effect
+                this.x += Math.sin(this.wobble) * 0.5;
+                
+                // Scale animation for rare emojis
+                if (this.rarity !== 'common') {
+                    this.scale = 1 + Math.sin(this.wobble * 2) * 0.1;
+                }
+                
+                // Remove if off screen (with buffer)
+                return this.y < game.height + 50 && !this.collected;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.scale(this.scale, this.scale);
+                
+                // Glow effect for rare emojis
+                if (this.rarity !== 'common') {
+                    ctx.shadowColor = this.glowColor;
+                    ctx.shadowBlur = 20;
+                }
+                
+                // Draw emoji
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.globalAlpha = this.alpha;
+                ctx.fillText(this.emoji, 0, 0);
+                
+                // Draw point indicator
+                ctx.shadowBlur = 0;
+                ctx.font = `${Math.floor(this.size * 0.3)}px Arial`;
+                ctx.fillStyle = this.glowColor;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeText(`${this.points}pt`, 0, this.size * 0.6);
+                ctx.fillText(`${this.points}pt`, 0, this.size * 0.6);
+                
+                ctx.restore();
+            }
+
+            checkTap(x, y) {
+                const dist = distance(x, y, this.x, this.y);
+                return dist < this.size / 2 + 20;
+            }
+
+            collect(x, y) {
+                if (this.collected) return 0;
+                
+                this.collected = true;
+                
+                // Play sound based on rarity
+                if (this.rarity === 'legendary') {
+                    AUDIO.play('legendary');
+                } else if (this.rarity === 'rare') {
+                    AUDIO.play('rare');
+                } else {
+                    AUDIO.play('tap');
+                }
+                
+                // Add to score with combo multiplier
+                const comboMultiplier = Math.min(game.combo + 1, 10);
+                const finalPoints = Math.floor(this.points * comboMultiplier);
+                game.score += finalPoints;
+                
+                // Increase combo
+                game.combo++;
+                game.maxCombo = Math.max(game.maxCombo, game.combo);
+                
+                // Play combo sound
+                if (game.combo > 1) {
+                    AUDIO.play('combo');
+                }
+                
+                // Reset combo timer
+                clearTimeout(game.comboTimer);
+                game.comboTimer = setTimeout(() => {
+                    game.combo = 0;
+                    document.getElementById('comboDisplay').classList.remove('active');
+                }, CONFIG.COMBO_TIMEOUT);
+                
+                // Show combo display
+                document.getElementById('comboDisplay').classList.add('active');
+                
+                // Add power-up energy
+                game.powerUpEnergy += this.rarity === 'legendary' ? 15 : 
+                                     this.rarity === 'rare' ? 8 : 3;
+                game.powerUpEnergy = Math.min(game.powerUpEnergy, CONFIG.POWER_UP_COST);
+                
+                // Create collection particles
+                this.createParticles(x, y);
+                
+                // Create floating score
+                this.createFloatingScore(finalPoints, x, y);
+                
+                // Screen effects for rare emojis
+                if (this.rarity === 'legendary') {
+                    game.screenShake = 10;
+                    game.rainbowMode = true;
+                    setTimeout(() => game.rainbowMode = false, 500);
+                } else if (this.rarity === 'rare') {
+                    game.screenShake = 5;
+                }
+                
+                // Haptic feedback
+                if ('vibrate' in navigator) {
+                    const vibration = this.rarity === 'legendary' ? [100, 50, 100] :
+                                     this.rarity === 'rare' ? [50, 25, 50] : [30];
+                    navigator.vibrate(vibration);
+                }
+                
+                return finalPoints;
+            }
+
+            createParticles(x, y) {
+                const particleCount = this.rarity === 'legendary' ? 8 :
+                                    this.rarity === 'rare' ? 5 : 3;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    // Don't create particles if too many exist
+                    if (game.particles.length >= CONFIG.MAX_PARTICLES) break;
+                    game.particles.push(new Particle(x, y, this.rarity, this.glowColor));
+                }
+            }
+
+            createFloatingScore(points, x, y) {
+                const scoreElement = document.createElement('div');
+                scoreElement.className = 'floating-score';
+                scoreElement.textContent = `+${points}`;
+                scoreElement.style.left = `${x - 30}px`;
+                scoreElement.style.top = `${y - 20}px`;
+                scoreElement.style.color = this.glowColor;
+                document.body.appendChild(scoreElement);
+                
+                setTimeout(() => {
+                    document.body.removeChild(scoreElement);
+                }, 1000);
+            }
+        }
+
+        // ===== PARTICLE CLASS =====
+        class Particle {
+            constructor(x, y, rarity, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = random(-8, 8);
+                this.vy = random(-12, -4);
+                this.life = 1;
+                this.decay = random(0.02, 0.04);
+                this.size = random(4, 12);
+                this.color = color;
+                this.rotation = random(0, Math.PI * 2);
+                this.rotationSpeed = random(-0.2, 0.2);
+                
+                // Special effects for legendary
+                if (rarity === 'legendary') {
+                    this.sparkle = true;
+                    this.size *= 1.5;
+                }
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.3; // Gravity
+                this.life -= this.decay;
+                this.rotation += this.rotationSpeed;
+                
+                return this.life > 0;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.globalAlpha = this.life;
+                
+                if (this.sparkle) {
+                    // Draw sparkle
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -this.size);
+                    ctx.lineTo(this.size * 0.3, -this.size * 0.3);
+                    ctx.lineTo(this.size, 0);
+                    ctx.lineTo(this.size * 0.3, this.size * 0.3);
+                    ctx.lineTo(0, this.size);
+                    ctx.lineTo(-this.size * 0.3, this.size * 0.3);
+                    ctx.lineTo(-this.size, 0);
+                    ctx.lineTo(-this.size * 0.3, -this.size * 0.3);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // Draw circle
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+        }
+
+        // ===== TOUCH EFFECT CLASS =====
+        class TouchEffect {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = 50;
+                this.life = 1;
+                this.decay = 0.05;
+            }
+
+            update() {
+                this.radius = lerp(this.radius, this.maxRadius, 0.2);
+                this.life -= this.decay;
+                return this.life > 0;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.life * 0.5;
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // ===== GAME FUNCTIONS =====
+        function init() {
+            game.canvas = document.getElementById('gameCanvas');
+            game.ctx = game.canvas.getContext('2d');
+            
+            resize();
+            window.addEventListener('resize', resize);
+            
+            // Touch/Mouse events
+            game.canvas.addEventListener('touchstart', handleTouch, { passive: false });
+            game.canvas.addEventListener('touchmove', handleTouch, { passive: false });
+            game.canvas.addEventListener('click', handleClick);
+            
+            // Prevent context menu and zoom
+            game.canvas.addEventListener('contextmenu', e => e.preventDefault());
+            
+            // Button events
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('restartBtn').addEventListener('click', startGame);
+            document.getElementById('powerUpBtn').addEventListener('click', activatePowerUp);
+            
+            // Audio toggle buttons
+            document.getElementById('musicToggle').addEventListener('click', () => {
+                AUDIO.musicEnabled = !AUDIO.musicEnabled;
+                document.getElementById('musicToggle').textContent = AUDIO.musicEnabled ? '🎵' : '🔇';
+                if (AUDIO.musicEnabled && game.running) {
+                    AUDIO.startBackgroundMusic();
+                }
+            });
+            
+            document.getElementById('sfxToggle').addEventListener('click', () => {
+                AUDIO.sfxEnabled = !AUDIO.sfxEnabled;
+                document.getElementById('sfxToggle').textContent = AUDIO.sfxEnabled ? '🔊' : '🔇';
+            });
+            
+            // Start animation loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resize() {
+            game.width = window.innerWidth;
+            game.height = window.innerHeight;
+            game.canvas.width = game.width;
+            game.canvas.height = game.height;
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            if (!game.running) return;
+            
+            for (let touch of e.touches) {
+                handleTap(touch.clientX, touch.clientY);
+            }
+        }
+
+        function handleClick(e) {
+            if (!game.running) return;
+            handleTap(e.clientX, e.clientY);
+        }
+
+        function handleTap(x, y) {
+            // Create touch effect
+            game.touchEffects.push(new TouchEffect(x, y));
+            
+            // Check enemy collisions first (they break combo)
+            let enemyHit = false;
+            game.enemies.forEach(enemy => {
+                if (enemy.checkTap(x, y)) {
+                    enemy.destroy(x, y);
+                    enemyHit = true;
+                }
+            });
+            
+            if (enemyHit) return; // Don't check emojis if enemy was hit
+            
+            // Check emoji collisions
+            let hit = false;
+            game.emojis.forEach(emoji => {
+                if (emoji.checkTap(x, y)) {
+                    emoji.collect(x, y);
+                    hit = true;
+                }
+            });
+            
+            // Miss penalty
+            if (!hit && game.combo > 0) {
+                game.combo = Math.max(0, game.combo - 1);
+            }
+        }
+
+        function activatePowerUp() {
+            if (game.powerUpEnergy < CONFIG.POWER_UP_COST || game.powerUpActive) return;
+            
+            game.powerUpEnergy = 0;
+            game.powerUpActive = true;
+            game.rainbowMode = true;
+            
+            // Play power-up sound
+            AUDIO.play('powerup');
+            
+            // Visual effects
+            document.body.classList.add('rainbow-mode');
+            document.getElementById('powerUpBtn').classList.add('disabled');
+            
+            // Spawn bonus emojis
+            for (let i = 0; i < 4; i++) {
+                setTimeout(() => {
+                    if (game.emojis.length < CONFIG.MAX_EMOJIS) {
+                        game.emojis.push(new Emoji());
+                    }
+                }, i * 400);
+            }
+            
+            setTimeout(() => {
+                game.powerUpActive = false;
+                game.rainbowMode = false;
+                document.body.classList.remove('rainbow-mode');
+                document.getElementById('powerUpBtn').classList.remove('disabled');
+            }, 4000);
+            
+            // Haptic feedback
+            if ('vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+        }
+
+        function activateStormEffect() {
+            // 画面を一時的に見づらくする
+            const stormOverlay = document.createElement('div');
+            stormOverlay.id = 'stormOverlay';
+            stormOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: radial-gradient(circle, transparent 30%, rgba(100, 0, 255, 0.2) 50%, rgba(0, 0, 0, 0.4) 80%);
+                z-index: 15;
+                pointer-events: none;
+                animation: stormPulse 0.3s infinite;
+            `;
+            
+            document.body.appendChild(stormOverlay);
+            
+            // 画面を軽く揺らす
+            game.screenShake = 12;
+            game.canvas.style.filter = 'blur(1px) contrast(1.3) saturate(0.7)';
+            
+            // 2.5秒後に効果を解除
+            setTimeout(() => {
+                if (document.body.contains(stormOverlay)) {
+                    document.body.removeChild(stormOverlay);
+                }
+                game.canvas.style.filter = '';
+            }, 2500);
+            
+            // 警告メッセージ
+            const stormElement = document.createElement('div');
+            stormElement.className = 'floating-score';
+            stormElement.textContent = '🌪️ STORM!';
+            stormElement.style.left = '50%';
+            stormElement.style.top = '35%';
+            stormElement.style.transform = 'translateX(-50%)';
+            stormElement.style.color = '#6600ff';
+            stormElement.style.fontSize = '28px';
+            stormElement.style.textShadow = '0 0 10px #6600ff';
+            document.body.appendChild(stormElement);
+            
+            setTimeout(() => {
+                if (document.body.contains(stormElement)) {
+                    document.body.removeChild(stormElement);
+                }
+            }, 1500);
+        }
+
+        function spawnEmoji() {
+            // Don't spawn if too many emojis exist
+            if (game.emojis.length >= CONFIG.MAX_EMOJIS) return;
+            
+            // Adjust spawn rate based on level
+            const spawnRate = Math.max(800, CONFIG.EMOJI_SPAWN_RATE - (game.level * 50));
+            
+            if (Date.now() - game.lastSpawn > spawnRate) {
+                game.emojis.push(new Emoji());
+                game.lastSpawn = Date.now();
+            }
+        }
+        
+        function spawnEnemy() {
+            // Don't spawn if too many enemies exist
+            if (game.enemies.length >= CONFIG.MAX_ENEMIES) return;
+            
+            // Spawn enemies less frequently than emojis
+            const enemySpawnRate = Math.max(2000, CONFIG.ENEMY_SPAWN_RATE - (game.level * 100));
+            
+            if (Date.now() - game.lastEnemySpawn > enemySpawnRate) {
+                game.enemies.push(new Enemy());
+                game.lastEnemySpawn = Date.now();
+            }
+        }
+
+        function updateUI() {
+            // Score display
+            document.getElementById('scoreDisplay').textContent = `🔥 ${game.score.toLocaleString()}`;
+            
+            // Time display
+            const timeLeft = Math.max(0, Math.ceil(game.timeRemaining / 1000));
+            const timeDisplay = document.getElementById('timeDisplay');
+            timeDisplay.textContent = `⏰ ${timeLeft}s`;
+            
+            // Change color based on remaining time
+            if (timeLeft <= 5) {
+                timeDisplay.style.color = '#ff0000';
+                timeDisplay.style.animation = 'pulse 0.5s infinite';
+            } else if (timeLeft <= 10) {
+                timeDisplay.style.color = '#ffaa00';
+            } else {
+                timeDisplay.style.color = 'white';
+                timeDisplay.style.animation = 'none';
+            }
+            
+            // Combo display
+            const comboDisplay = document.getElementById('comboDisplay');
+            if (game.combo > 0) {
+                comboDisplay.textContent = `COMBO x${game.combo}`;
+                comboDisplay.classList.add('active');
+            } else {
+                comboDisplay.classList.remove('active');
+            }
+            
+            // Progress bar (power-up energy)
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = (game.powerUpEnergy / CONFIG.POWER_UP_COST) * 100;
+            progressFill.style.width = `${progressPercent}%`;
+            
+            // Power-up button
+            const powerUpBtn = document.getElementById('powerUpBtn');
+            if (game.powerUpEnergy >= CONFIG.POWER_UP_COST && !game.powerUpActive) {
+                powerUpBtn.classList.remove('disabled');
+                powerUpBtn.textContent = '⚡ MEGA BOOST READY! ⚡';
+            } else if (game.powerUpActive) {
+                powerUpBtn.textContent = '🌈 BOOST ACTIVE! 🌈';
+            } else {
+                powerUpBtn.classList.add('disabled');
+                powerUpBtn.textContent = `⚡ BOOST ${Math.floor(progressPercent)}% ⚡`;
+            }
+            
+            // Level progression
+            const newLevel = Math.floor(game.score / 1000) + 1;
+            if (newLevel > game.level) {
+                game.level = newLevel;
+                // Level up effects
+                game.screenShake = 15;
+                for (let i = 0; i < 10; i++) {
+                    if (game.particles.length >= CONFIG.MAX_PARTICLES) break;
+                    game.particles.push(new Particle(
+                        random(0, game.width),
+                        random(0, game.height),
+                        'legendary',
+                        '#FFD700'
+                    ));
+                }
+            }
+        }
+        function drawBackground() {
+            const ctx = game.ctx;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, game.width, game.height);
+            
+            // Screen shake effect
+            if (game.screenShake > 0) {
+                ctx.save();
+                ctx.translate(
+                    random(-game.screenShake, game.screenShake),
+                    random(-game.screenShake, game.screenShake)
+                );
+                game.screenShake *= 0.9;
+                if (game.screenShake < 0.1) game.screenShake = 0;
+            }
+            
+            // Floating background particles (reduced)
+            if (game.frameCount % 60 === 0 && game.particles.length < CONFIG.MAX_PARTICLES) {
+                game.particles.push(new Particle(
+                    random(0, game.width),
+                    game.height + 50,
+                    'common',
+                    `hsl(${random(0, 360)}, 70%, 70%)`
+                ));
+            }
+            
+            if (game.screenShake > 0) {
+                ctx.restore();
+            }
+        }
+
+        function gameLoop(timestamp) {
+            game.frameCount++;
+            
+            drawBackground();
+            
+            if (game.running) {
+                // Update time remaining
+                game.timeRemaining = CONFIG.GAME_TIME - (Date.now() - game.gameStartTime);
+                
+                // Check if time is up
+                if (game.timeRemaining <= 0) {
+                    gameOver();
+                    return;
+                }
+                
+                // Spawn emojis
+                spawnEmoji();
+                
+                // Spawn enemies
+                spawnEnemy();
+                
+                // Update game objects
+                game.emojis = game.emojis.filter(emoji => emoji.update());
+                game.enemies = game.enemies.filter(enemy => enemy.update());
+                game.particles = game.particles.filter(particle => particle.update());
+                game.touchEffects = game.touchEffects.filter(effect => effect.update());
+                
+                // Draw everything
+                game.particles.forEach(particle => particle.draw(game.ctx));
+                game.emojis.forEach(emoji => emoji.draw(game.ctx));
+                game.enemies.forEach(enemy => enemy.draw(game.ctx));
+                game.touchEffects.forEach(effect => effect.draw(game.ctx));
+                
+                updateUI();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            
+            // Initialize audio
+            AUDIO.init();
+            AUDIO.startBackgroundMusic();
+            
+            // Reset game state
+            game.running = true;
+            game.score = 0;
+            game.combo = 0;
+            game.maxCombo = 0;
+            game.level = 1;
+            game.emojis = [];
+            game.enemies = [];
+            game.particles = [];
+            game.touchEffects = [];
+            game.powerUpActive = false;
+            game.powerUpEnergy = 0;
+            game.lastSpawn = Date.now();
+            game.lastEnemySpawn = Date.now();
+            game.screenShake = 0;
+            game.rainbowMode = false;
+            game.gameStartTime = Date.now();
+            game.timeRemaining = CONFIG.GAME_TIME;
+            
+            // Clear timers
+            clearTimeout(game.comboTimer);
+            
+            // Reset UI
+            document.getElementById('comboDisplay').classList.remove('active');
+            document.body.classList.remove('rainbow-mode');
+            document.getElementById('powerUpBtn').classList.add('disabled');
+        }
+
+        function gameOver() {
+            game.running = false;
+            
+            // Save high score
+            const highScore = localStorage.getItem('emojiRushHighScore') || 0;
+            if (game.score > highScore) {
+                localStorage.setItem('emojiRushHighScore', game.score);
+            }
+            
+            // Determine rank message
+            let rankMessage = '';
+            if (game.score < 300) {
+                rankMessage = '🌱 初心者タッパー - もう一度挑戦！';
+            } else if (game.score < 800) {
+                rankMessage = '🔥 熱血タッパー - いい調子！';
+            } else if (game.score < 1500) {
+                rankMessage = '⚡ 電光石火 - 素晴らしい！';
+            } else if (game.score < 2500) {
+                rankMessage = '🌟 タップマスター - 凄腕！';
+            } else if (game.score < 4000) {
+                rankMessage = '👑 タップキング - 王者級！';
+            } else {
+                rankMessage = '🏆 伝説のタッパー - 神の領域！';
+            }
+            
+            document.getElementById('finalScore').textContent = `Score: ${game.score.toLocaleString()}`;
+            document.getElementById('rankMessage').textContent = rankMessage;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+            
+            // Final explosion effect (reduced)
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    if (game.particles.length < CONFIG.MAX_PARTICLES) {
+                        game.particles.push(new Particle(
+                            random(0, game.width),
+                            random(0, game.height),
+                            'legendary',
+                            `hsl(${random(0, 360)}, 100%, 60%)`
+                        ));
+                    }
+                }, i * 100);
+            }
+        }
+
+        // ===== SOCIAL FEATURES =====
+        function shareGame() {
+            if (navigator.share) {
+                navigator.share({
+                    title: '🔥 Emoji Rush: Viral Tap 🔥',
+                    text: '超中毒性のタップゲーム！君は何点取れる？',
+                    url: window.location.href
+                });
+            } else {
+                // Fallback for browsers without Web Share API
+                const text = '🔥 Emoji Rush: Viral Tap 🔥 - 超中毒性のタップゲーム！ ' + window.location.href;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    alert('リンクをコピーしました！');
+                } else {
+                    prompt('このリンクをコピーしてシェアしよう！', text);
+                }
+            }
+        }
+
+        function shareScore() {
+            const text = `🔥 Emoji Rush で ${game.score.toLocaleString()} 点取った！君は勝てる？ ${window.location.href}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Emoji Rush - スコア自慢',
+                    text: text,
+                    url: window.location.href
+                });
+            } else {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    alert('スコアをコピーしました！SNSでシェアしよう！');
+                } else {
+                    prompt('このスコアをコピーしてシェアしよう！', text);
+                }
+            }
+        }
+
+        function challengeFriend() {
+            const text = `🎯 Emoji Rush チャレンジ！私のスコア ${game.score.toLocaleString()} 点を超えられる？ ${window.location.href}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Emoji Rush - 友達チャレンジ',
+                    text: text,
+                    url: window.location.href
+                });
+            } else {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text);
+                    alert('チャレンジメッセージをコピーしました！');
+                } else {
+                    prompt('友達にこのチャレンジを送ろう！', text);
+                }
+            }
+        }
+
+        function showLeaderboard() {
+            const highScore = localStorage.getItem('emojiRushHighScore') || 0;
+            alert(`🏆 あなたのハイスコア: ${parseInt(highScore).toLocaleString()} 点\n\n友達とスコアを競い合おう！`);
+        }
+
+        // ===== PERFORMANCE OPTIMIZATION =====
+        
+        // Preload emojis for better performance
+        function preloadEmojis() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 100;
+            canvas.height = 100;
+            
+            // Pre-render common emojis
+            Object.values(CONFIG.EMOJIS).flat().forEach(emoji => {
+                ctx.font = '50px Arial';
+                ctx.fillText(emoji, 25, 75);
+            });
+        }
+
+        // Optimize particle count for mobile
+        function optimizeForMobile() {
+            if (window.innerWidth < 768) {
+                // Reduce particle effects on mobile
+                CONFIG.EMOJI_SPAWN_RATE *= 1.2;
+                
+                // Simplify visual effects
+                document.body.style.backdropFilter = 'none';
+            }
+        }
+
+        // ===== INITIALIZATION =====
+        window.addEventListener('load', () => {
+            init();
+            preloadEmojis();
+            optimizeForMobile();
+            
+            // Add PWA-like behavior
+            if ('serviceWorker' in navigator) {
+                // Could register service worker here for offline play
+            }
+            
+            // Prevent zoom on double tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+            
+            // Prevent pull-to-refresh
+            document.body.addEventListener('touchstart', e => {
+                if (e.touches.length === 1 && e.touches[0].clientY <= 50) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            document.body.addEventListener('touchmove', e => {
+                e.preventDefault();
+            }, { passive: false });
+        });
+
+        // ===== ANALYTICS & ENGAGEMENT =====
+        
+        // Track engagement metrics
+        let sessionStartTime = Date.now();
+        let totalTaps = 0;
+        let gamesPlayed = 0;
+
+        function trackGameSession() {
+            gamesPlayed++;
+            const sessionLength = Date.now() - sessionStartTime;
+            
+            // Could send analytics data here
+            console.log(`Game ${gamesPlayed}: ${totalTaps} taps, ${sessionLength}ms session`);
+        }
+
+        // Add to existing handleTap function
+        const originalHandleTap = handleTap;
+        handleTap = function(x, y) {
+            totalTaps++;
+            return originalHandleTap(x, y);
+        };
+
+        // Add to existing gameOver function
+        const originalGameOver = gameOver;
+        gameOver = function() {
+            trackGameSession();
+            return originalGameOver();
+        };
+    </script>
+</body>
+</html>
