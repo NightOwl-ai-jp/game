@@ -414,24 +414,34 @@
             <div style="font-size: clamp(18px, 4vw, 24px); color: #fff; margin-bottom: 20px; font-weight: bold; text-align: center; text-shadow: 0 0 10px #ff00ff;">📊 得点システム</div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(72,219,251,0.2); border-radius: 10px; border: 2px solid #48DBFB;">
                 <span style="font-size: 28px;">😀😂🥰</span>
-                <span style="color: #48DBFB; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #48DBFB;">10点 (コモン)</span>
+                <span style="color: #48DBFB; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #48DBFB;">15点 (コモン)</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,107,107,0.2); border-radius: 10px; border: 2px solid #FF6B6B;">
                 <span style="font-size: 28px;">🔥💎🌟</span>
-                <span style="color: #FF6B6B; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #FF6B6B;">50点 (レア)</span>
+                <span style="color: #FF6B6B; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #FF6B6B;">60点 (レア)</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,215,0,0.2); border-radius: 10px; border: 2px solid #FFD700;">
                 <span style="font-size: 28px;">🏆💰🎯</span>
-                <span style="color: #FFD700; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #FFD700;">200点 (レジェンド)</span>
+                <span style="color: #FFD700; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #FFD700;">250点 (レジェンド)</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,0,0,0.3); border-radius: 10px; border: 3px solid #ff0000; animation: dangerPulse 1.5s infinite;">
-                <span style="font-size: 28px;">💀👹☠️</span>
-                <span style="color: #ff0000; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #ff0000;">敵 (コンボリセット)</span>
+                <span style="font-size: 28px;">💀☠️💣</span>
+                <span style="color: #ff0000; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #ff0000;">即死 (ゲームオーバー)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(255,102,0,0.2); border-radius: 10px; border: 2px solid #ff6600;">
+                <span style="font-size: 28px;">👹👺🤖</span>
+                <span style="color: #ff6600; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #ff6600;">-100点 (マイナス)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0; padding: 12px; background: rgba(102,0,255,0.2); border-radius: 10px; border: 2px solid #6600ff;">
+                <span style="font-size: 28px;">🌪️⚡🌊</span>
+                <span style="color: #6600ff; font-weight: bold; font-size: 16px; text-shadow: 0 0 5px #6600ff;">嵐 (画面妨害)</span>
             </div>
             <div style="font-size: clamp(12px, 2.5vw, 16px); color: #fff; margin-top: 15px; text-align: center; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;">
                 ⏰ 制限時間: <span style="color: #ff00ff; font-weight: bold;">30秒</span><br>
                 🔥 コンボで得点倍増！<br>
-                ⚠️ 敵をタップするとコンボが0に！
+                💀 赤い敵は即死！<br>
+                👹 オレンジの敵は-100点！<br>
+                🌪️ 紫の敵は画面妨害！
             </div>
         </div>
         
@@ -446,11 +456,24 @@
             }
         }
         
+        @keyframes stormPulse {
+            0%, 100% { 
+                opacity: 0.6;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8;
+                transform: scale(1.02);
+            }
+        }
+        
         <button class="start-btn" id="startBtn">🚀 START TAPPING 🚀</button>
         <div class="instructions">
             📱 タップしてエモジをキャッチ！<br>
             🎯 コンボを繋げてスコアアップ<br>
-            ⚠️ 敵をタップするとコンボリセット<br>
+            💀 赤い敵は即死、避けよう！<br>
+            👹 オレンジの敵は-100点<br>
+            �️ 紫の敵は高画面が見づらくなる<br>
             ⚡ パワーアップで大爆発<br>
             🏆 30秒で最高スコアを目指そう！
         </div>
@@ -571,29 +594,32 @@
         // ===== GAME CONFIGURATION =====
         const CONFIG = {
             EMOJI_SPAWN_RATE: 1000,
-            EMOJI_SPEED: 2,
-            ENEMY_SPAWN_RATE: 2500,
-            ENEMY_SPEED: 1.5,
-            COMBO_TIMEOUT: 1500,
-            POWER_UP_COST: 100,
+            EMOJI_SPEED: 2.5,
+            ENEMY_SPAWN_RATE: 3500,
+            ENEMY_SPEED: 1.8,
+            COMBO_TIMEOUT: 2000,
+            POWER_UP_COST: 80,
             POWER_UP_DURATION: 5000,
             TARGET_FPS: 60,
             GAME_TIME: 30000, // 30秒
+            MAX_EMOJIS: 6, // 最大エモジ数（少し減らして見やすく）
+            MAX_ENEMIES: 2, // 最大敵数（バランス調整）
+            MAX_PARTICLES: 25, // 最大パーティクル数
             EMOJIS: {
                 common: ['😀', '😂', '🥰', '😎', '🤩', '😍', '🙌', '👏', '💖', '✨'],
                 rare: ['🔥', '💎', '🌟', '🎉', '🚀', '⚡', '🌈', '🦄', '👑', '💫'],
                 legendary: ['🏆', '💰', '🎯', '🎪', '🎭', '🎨', '🎵', '🎸', '🎤', '🎬']
             },
-            ENEMIES: ['💀', '👹', '👺', '🤖', '👾', '☠️', '💣', '⚡', '🌪️', '🔥'],
+            ENEMIES: ['💀', '👹', '�', '🤖', '�', '☠️', '💣', '⚡', '�️', '🔥'],
             RARITY_CHANCES: {
-                common: 0.7,
-                rare: 0.25,
-                legendary: 0.05
+                common: 0.65,
+                rare: 0.28,
+                legendary: 0.07
             },
             POINTS: {
-                common: 10,
-                rare: 50,
-                legendary: 200
+                common: 15,
+                rare: 60,
+                legendary: 250
             }
         };
 
@@ -656,9 +682,26 @@
                 this.scale = 1;
                 this.alpha = 1;
                 this.destroyed = false;
-                this.emoji = randomChoice(CONFIG.ENEMIES);
-                this.glowColor = '#ff0000';
                 this.pulsePhase = random(0, Math.PI * 2);
+                
+                // 敵の種類を決定（危険な敵の出現率を下げる）
+                const rand = Math.random();
+                if (rand < 0.25) {
+                    this.type = 'danger';
+                    this.emoji = randomChoice(['💀', '☠️', '💣']);
+                    this.glowColor = '#ff0000';
+                    this.effect = 'gameover';
+                } else if (rand < 0.65) {
+                    this.type = 'minus';
+                    this.emoji = randomChoice(['👹', '👺', '🤖']);
+                    this.glowColor = '#ff6600';
+                    this.effect = 'minus';
+                } else {
+                    this.type = 'storm';
+                    this.emoji = randomChoice(['🌪️', '⚡', '🌊']);
+                    this.glowColor = '#6600ff';
+                    this.effect = 'storm';
+                }
             }
 
             update() {
@@ -673,8 +716,8 @@
                 // Pulsing scale
                 this.scale = 1 + Math.sin(this.pulsePhase) * 0.15;
                 
-                // Remove if off screen
-                return this.y < game.height + 100 && !this.destroyed;
+                // Remove if off screen (with buffer)
+                return this.y < game.height + 50 && !this.destroyed;
             }
 
             draw(ctx) {
@@ -694,14 +737,26 @@
                 ctx.globalAlpha = this.alpha;
                 ctx.fillText(this.emoji, 0, 0);
                 
-                // Draw danger indicator
+                // Draw danger indicator based on type
                 ctx.shadowBlur = 0;
                 ctx.font = `${Math.floor(this.size * 0.25)}px Arial`;
-                ctx.fillStyle = '#ff0000';
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.strokeText('DANGER', 0, this.size * 0.6);
-                ctx.fillText('DANGER', 0, this.size * 0.6);
+                
+                let warningText = '';
+                if (this.type === 'danger') {
+                    ctx.fillStyle = '#ff0000';
+                    warningText = 'DANGER';
+                } else if (this.type === 'minus') {
+                    ctx.fillStyle = '#ff6600';
+                    warningText = 'MINUS';
+                } else if (this.type === 'storm') {
+                    ctx.fillStyle = '#6600ff';
+                    warningText = 'STORM';
+                }
+                
+                ctx.strokeText(warningText, 0, this.size * 0.6);
+                ctx.fillText(warningText, 0, this.size * 0.6);
                 
                 ctx.restore();
             }
@@ -716,16 +771,49 @@
                 
                 this.destroyed = true;
                 
-                // Play destruction sound
-                AUDIO.play('rare');
+                // 敵の種類に応じた効果
+                if (this.type === 'danger') {
+                    // ゲームオーバー
+                    AUDIO.play('rare');
+                    gameOver();
+                    return;
+                } else if (this.type === 'minus') {
+                    // マイナスポイント
+                    AUDIO.play('combo');
+                    game.score = Math.max(0, game.score - 100);
+                    game.combo = 0;
+                    document.getElementById('comboDisplay').classList.remove('active');
+                    
+                    // マイナスポイント表示
+                    const minusElement = document.createElement('div');
+                    minusElement.className = 'floating-score';
+                    minusElement.textContent = '-100';
+                    minusElement.style.left = `${x - 30}px`;
+                    minusElement.style.top = `${y - 20}px`;
+                    minusElement.style.color = '#ff6600';
+                    minusElement.style.fontSize = '24px';
+                    document.body.appendChild(minusElement);
+                    
+                    setTimeout(() => {
+                        if (document.body.contains(minusElement)) {
+                            document.body.removeChild(minusElement);
+                        }
+                    }, 1000);
+                    
+                } else if (this.type === 'storm') {
+                    // 画面エフェクト
+                    AUDIO.play('powerup');
+                    game.combo = 0;
+                    document.getElementById('comboDisplay').classList.remove('active');
+                    
+                    // 画面を一時的に見づらくする
+                    activateStormEffect();
+                }
                 
-                // Lose combo
-                game.combo = 0;
-                document.getElementById('comboDisplay').classList.remove('active');
-                
-                // Create destruction particles
-                for (let i = 0; i < 8; i++) {
-                    game.particles.push(new Particle(x, y, 'common', '#ff0000'));
+                // 共通エフェクト
+                for (let i = 0; i < 5; i++) {
+                    if (game.particles.length >= CONFIG.MAX_PARTICLES) break;
+                    game.particles.push(new Particle(x, y, 'common', this.glowColor));
                 }
                 
                 // Screen shake
@@ -733,24 +821,12 @@
                 
                 // Haptic feedback
                 if ('vibrate' in navigator) {
-                    navigator.vibrate([100, 50, 100]);
-                }
-                
-                // Show warning message
-                const warningElement = document.createElement('div');
-                warningElement.className = 'floating-score';
-                warningElement.textContent = 'COMBO LOST!';
-                warningElement.style.left = `${x - 50}px`;
-                warningElement.style.top = `${y - 20}px`;
-                warningElement.style.color = '#ff0000';
-                warningElement.style.fontSize = '20px';
-                document.body.appendChild(warningElement);
-                
-                setTimeout(() => {
-                    if (document.body.contains(warningElement)) {
-                        document.body.removeChild(warningElement);
+                    if (this.type === 'danger') {
+                        navigator.vibrate([200, 100, 200, 100, 200]);
+                    } else {
+                        navigator.vibrate([100, 50, 100]);
                     }
-                }, 1000);
+                }
             }
         }
 
@@ -808,8 +884,8 @@
                     this.scale = 1 + Math.sin(this.wobble * 2) * 0.1;
                 }
                 
-                // Remove if off screen
-                return this.y < game.height + 100 && !this.collected;
+                // Remove if off screen (with buffer)
+                return this.y < game.height + 50 && !this.collected;
             }
 
             draw(ctx) {
@@ -917,10 +993,12 @@
             }
 
             createParticles(x, y) {
-                const particleCount = this.rarity === 'legendary' ? 15 :
-                                    this.rarity === 'rare' ? 10 : 5;
+                const particleCount = this.rarity === 'legendary' ? 8 :
+                                    this.rarity === 'rare' ? 5 : 3;
                 
                 for (let i = 0; i < particleCount; i++) {
+                    // Don't create particles if too many exist
+                    if (game.particles.length >= CONFIG.MAX_PARTICLES) break;
                     game.particles.push(new Particle(x, y, this.rarity, this.glowColor));
                 }
             }
@@ -1137,10 +1215,12 @@
             document.getElementById('powerUpBtn').classList.add('disabled');
             
             // Spawn bonus emojis
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 4; i++) {
                 setTimeout(() => {
-                    game.emojis.push(new Emoji());
-                }, i * 200);
+                    if (game.emojis.length < CONFIG.MAX_EMOJIS) {
+                        game.emojis.push(new Emoji());
+                    }
+                }, i * 400);
             }
             
             setTimeout(() => {
@@ -1148,7 +1228,7 @@
                 game.rainbowMode = false;
                 document.body.classList.remove('rainbow-mode');
                 document.getElementById('powerUpBtn').classList.remove('disabled');
-            }, CONFIG.POWER_UP_DURATION);
+            }, 4000);
             
             // Haptic feedback
             if ('vibrate' in navigator) {
@@ -1156,9 +1236,61 @@
             }
         }
 
+        function activateStormEffect() {
+            // 画面を一時的に見づらくする
+            const stormOverlay = document.createElement('div');
+            stormOverlay.id = 'stormOverlay';
+            stormOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: radial-gradient(circle, transparent 30%, rgba(100, 0, 255, 0.2) 50%, rgba(0, 0, 0, 0.4) 80%);
+                z-index: 15;
+                pointer-events: none;
+                animation: stormPulse 0.3s infinite;
+            `;
+            
+            document.body.appendChild(stormOverlay);
+            
+            // 画面を軽く揺らす
+            game.screenShake = 12;
+            game.canvas.style.filter = 'blur(1px) contrast(1.3) saturate(0.7)';
+            
+            // 2.5秒後に効果を解除
+            setTimeout(() => {
+                if (document.body.contains(stormOverlay)) {
+                    document.body.removeChild(stormOverlay);
+                }
+                game.canvas.style.filter = '';
+            }, 2500);
+            
+            // 警告メッセージ
+            const stormElement = document.createElement('div');
+            stormElement.className = 'floating-score';
+            stormElement.textContent = '🌪️ STORM!';
+            stormElement.style.left = '50%';
+            stormElement.style.top = '35%';
+            stormElement.style.transform = 'translateX(-50%)';
+            stormElement.style.color = '#6600ff';
+            stormElement.style.fontSize = '28px';
+            stormElement.style.textShadow = '0 0 10px #6600ff';
+            document.body.appendChild(stormElement);
+            
+            setTimeout(() => {
+                if (document.body.contains(stormElement)) {
+                    document.body.removeChild(stormElement);
+                }
+            }, 1500);
+        }
+
         function spawnEmoji() {
+            // Don't spawn if too many emojis exist
+            if (game.emojis.length >= CONFIG.MAX_EMOJIS) return;
+            
             // Adjust spawn rate based on level
-            const spawnRate = Math.max(400, CONFIG.EMOJI_SPAWN_RATE - (game.level * 50));
+            const spawnRate = Math.max(800, CONFIG.EMOJI_SPAWN_RATE - (game.level * 50));
             
             if (Date.now() - game.lastSpawn > spawnRate) {
                 game.emojis.push(new Emoji());
@@ -1167,8 +1299,11 @@
         }
         
         function spawnEnemy() {
+            // Don't spawn if too many enemies exist
+            if (game.enemies.length >= CONFIG.MAX_ENEMIES) return;
+            
             // Spawn enemies less frequently than emojis
-            const enemySpawnRate = Math.max(1500, CONFIG.ENEMY_SPAWN_RATE - (game.level * 100));
+            const enemySpawnRate = Math.max(2000, CONFIG.ENEMY_SPAWN_RATE - (game.level * 100));
             
             if (Date.now() - game.lastEnemySpawn > enemySpawnRate) {
                 game.enemies.push(new Enemy());
@@ -1228,7 +1363,8 @@
                 game.level = newLevel;
                 // Level up effects
                 game.screenShake = 15;
-                for (let i = 0; i < 20; i++) {
+                for (let i = 0; i < 10; i++) {
+                    if (game.particles.length >= CONFIG.MAX_PARTICLES) break;
                     game.particles.push(new Particle(
                         random(0, game.width),
                         random(0, game.height),
@@ -1255,8 +1391,8 @@
                 if (game.screenShake < 0.1) game.screenShake = 0;
             }
             
-            // Floating background particles
-            if (game.frameCount % 30 === 0) {
+            // Floating background particles (reduced)
+            if (game.frameCount % 60 === 0 && game.particles.length < CONFIG.MAX_PARTICLES) {
                 game.particles.push(new Particle(
                     random(0, game.width),
                     game.height + 50,
@@ -1356,34 +1492,36 @@
             
             // Determine rank message
             let rankMessage = '';
-            if (game.score < 500) {
-                rankMessage = '🌱 初心者タッパー';
-            } else if (game.score < 2000) {
-                rankMessage = '🔥 熱血タッパー';
-            } else if (game.score < 5000) {
-                rankMessage = '⚡ 電光石火';
-            } else if (game.score < 10000) {
-                rankMessage = '🌟 タップマスター';
-            } else if (game.score < 20000) {
-                rankMessage = '👑 タップキング';
+            if (game.score < 300) {
+                rankMessage = '🌱 初心者タッパー - もう一度挑戦！';
+            } else if (game.score < 800) {
+                rankMessage = '🔥 熱血タッパー - いい調子！';
+            } else if (game.score < 1500) {
+                rankMessage = '⚡ 電光石火 - 素晴らしい！';
+            } else if (game.score < 2500) {
+                rankMessage = '🌟 タップマスター - 凄腕！';
+            } else if (game.score < 4000) {
+                rankMessage = '👑 タップキング - 王者級！';
             } else {
-                rankMessage = '🏆 伝説のタッパー';
+                rankMessage = '🏆 伝説のタッパー - 神の領域！';
             }
             
             document.getElementById('finalScore').textContent = `Score: ${game.score.toLocaleString()}`;
             document.getElementById('rankMessage').textContent = rankMessage;
             document.getElementById('gameOverScreen').classList.remove('hidden');
             
-            // Final explosion effect
-            for (let i = 0; i < 50; i++) {
+            // Final explosion effect (reduced)
+            for (let i = 0; i < 20; i++) {
                 setTimeout(() => {
-                    game.particles.push(new Particle(
-                        random(0, game.width),
-                        random(0, game.height),
-                        'legendary',
-                        `hsl(${random(0, 360)}, 100%, 60%)`
-                    ));
-                }, i * 50);
+                    if (game.particles.length < CONFIG.MAX_PARTICLES) {
+                        game.particles.push(new Particle(
+                            random(0, game.width),
+                            random(0, game.height),
+                            'legendary',
+                            `hsl(${random(0, 360)}, 100%, 60%)`
+                        ));
+                    }
+                }, i * 100);
             }
         }
 
