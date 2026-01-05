@@ -288,6 +288,16 @@
                 padding: 12px 25px;
                 font-size: 16px;
             }
+            
+            .ui-row {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
         
         .hidden { 
@@ -324,6 +334,11 @@
             <div class="score-display" id="scoreDisplay">
                 🔥 0
             </div>
+            <div class="score-display" id="timeDisplay">
+                ⏰ 30s
+            </div>
+        </div>
+        <div class="ui-row">
             <div class="combo-display" id="comboDisplay">
                 COMBO x1
             </div>
@@ -346,12 +361,40 @@
     <div id="startScreen" class="screen">
         <div class="title">🔥 EMOJI RUSH 🔥</div>
         <div class="subtitle">Viral Tap Challenge</div>
+        
+        <!-- Point System Guide -->
+        <div style="background: rgba(0,0,0,0.7); padding: 20px; border-radius: 15px; margin: 20px 0; max-width: 350px;">
+            <div style="font-size: 18px; color: #fff; margin-bottom: 15px; font-weight: bold;">📊 得点システム</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <span style="font-size: 24px;">😀😂🥰</span>
+                <span style="color: #48DBFB; font-weight: bold;">10点 (コモン)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <span style="font-size: 24px;">🔥💎🌟</span>
+                <span style="color: #FF6B6B; font-weight: bold;">50点 (レア)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <span style="font-size: 24px;">🏆💰🎯</span>
+                <span style="color: #FFD700; font-weight: bold;">200点 (レジェンド)</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: rgba(255,0,0,0.2); border-radius: 8px; border: 2px solid #ff0000;">
+                <span style="font-size: 24px;">💀👹☠️</span>
+                <span style="color: #ff0000; font-weight: bold;">敵 (コンボリセット)</span>
+            </div>
+            <div style="font-size: 14px; color: #aaa; margin-top: 10px; text-align: center;">
+                ⏰ 制限時間: 30秒<br>
+                🔥 コンボで得点倍増！<br>
+                ⚠️ 敵をタップするとコンボが0に！
+            </div>
+        </div>
+        
         <button class="start-btn" id="startBtn">🚀 START TAPPING 🚀</button>
         <div class="instructions">
             📱 タップしてエモジをキャッチ！<br>
             🎯 コンボを繋げてスコアアップ<br>
+            ⚠️ 敵をタップするとコンボリセット<br>
             ⚡ パワーアップで大爆発<br>
-            🏆 友達とスコアを競おう！
+            🏆 30秒で最高スコアを目指そう！
         </div>
         <div class="social-share">
             <button class="share-btn" onclick="shareGame()">📤 シェア</button>
@@ -471,15 +514,19 @@
         const CONFIG = {
             EMOJI_SPAWN_RATE: 1000,
             EMOJI_SPEED: 2,
+            ENEMY_SPAWN_RATE: 2500,
+            ENEMY_SPEED: 1.5,
             COMBO_TIMEOUT: 1500,
             POWER_UP_COST: 100,
             POWER_UP_DURATION: 5000,
             TARGET_FPS: 60,
+            GAME_TIME: 30000, // 30秒
             EMOJIS: {
                 common: ['😀', '😂', '🥰', '😎', '🤩', '😍', '🙌', '👏', '💖', '✨'],
                 rare: ['🔥', '💎', '🌟', '🎉', '🚀', '⚡', '🌈', '🦄', '👑', '💫'],
                 legendary: ['🏆', '💰', '🎯', '🎪', '🎭', '🎨', '🎵', '🎸', '🎤', '🎬']
             },
+            ENEMIES: ['💀', '👹', '👺', '🤖', '👾', '☠️', '💣', '⚡', '🌪️', '🔥'],
             RARITY_CHANCES: {
                 common: 0.7,
                 rare: 0.25,
@@ -505,15 +552,19 @@
             level: 1,
             progress: 0,
             emojis: [],
+            enemies: [],
             particles: [],
             powerUpActive: false,
             powerUpEnergy: 0,
             lastSpawn: 0,
+            lastEnemySpawn: 0,
             frameCount: 0,
             comboTimer: null,
             touchEffects: [],
             screenShake: 0,
-            rainbowMode: false
+            rainbowMode: false,
+            gameStartTime: 0,
+            timeRemaining: 0
         };
 
         // ===== UTILITY FUNCTIONS =====
@@ -531,6 +582,118 @@
 
         function lerp(start, end, factor) {
             return start + (end - start) * factor;
+        }
+
+        // ===== ENEMY CLASS =====
+        class Enemy {
+            constructor() {
+                this.x = random(50, game.width - 50);
+                this.y = -50;
+                this.size = random(35, 70);
+                this.speed = CONFIG.ENEMY_SPEED + random(-0.3, 0.8);
+                this.rotation = 0;
+                this.rotationSpeed = random(-0.15, 0.15);
+                this.wobble = random(0, Math.PI * 2);
+                this.wobbleSpeed = random(0.03, 0.08);
+                this.scale = 1;
+                this.alpha = 1;
+                this.destroyed = false;
+                this.emoji = randomChoice(CONFIG.ENEMIES);
+                this.glowColor = '#ff0000';
+                this.pulsePhase = random(0, Math.PI * 2);
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotationSpeed;
+                this.wobble += this.wobbleSpeed;
+                this.pulsePhase += 0.1;
+                
+                // Wobble effect
+                this.x += Math.sin(this.wobble) * 0.8;
+                
+                // Pulsing scale
+                this.scale = 1 + Math.sin(this.pulsePhase) * 0.15;
+                
+                // Remove if off screen
+                return this.y < game.height + 100 && !this.destroyed;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.scale(this.scale, this.scale);
+                
+                // Red glow effect
+                ctx.shadowColor = this.glowColor;
+                ctx.shadowBlur = 25;
+                
+                // Draw enemy emoji
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.globalAlpha = this.alpha;
+                ctx.fillText(this.emoji, 0, 0);
+                
+                // Draw danger indicator
+                ctx.shadowBlur = 0;
+                ctx.font = `${Math.floor(this.size * 0.25)}px Arial`;
+                ctx.fillStyle = '#ff0000';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeText('DANGER', 0, this.size * 0.6);
+                ctx.fillText('DANGER', 0, this.size * 0.6);
+                
+                ctx.restore();
+            }
+
+            checkTap(x, y) {
+                const dist = distance(x, y, this.x, this.y);
+                return dist < this.size / 2 + 20;
+            }
+
+            destroy(x, y) {
+                if (this.destroyed) return;
+                
+                this.destroyed = true;
+                
+                // Play destruction sound
+                AUDIO.play('rare');
+                
+                // Lose combo
+                game.combo = 0;
+                document.getElementById('comboDisplay').classList.remove('active');
+                
+                // Create destruction particles
+                for (let i = 0; i < 8; i++) {
+                    game.particles.push(new Particle(x, y, 'common', '#ff0000'));
+                }
+                
+                // Screen shake
+                game.screenShake = 8;
+                
+                // Haptic feedback
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+                
+                // Show warning message
+                const warningElement = document.createElement('div');
+                warningElement.className = 'floating-score';
+                warningElement.textContent = 'COMBO LOST!';
+                warningElement.style.left = `${x - 50}px`;
+                warningElement.style.top = `${y - 20}px`;
+                warningElement.style.color = '#ff0000';
+                warningElement.style.fontSize = '20px';
+                document.body.appendChild(warningElement);
+                
+                setTimeout(() => {
+                    if (document.body.contains(warningElement)) {
+                        document.body.removeChild(warningElement);
+                    }
+                }, 1000);
+            }
         }
 
         // ===== EMOJI CLASS =====
@@ -609,6 +772,15 @@
                 ctx.textBaseline = 'middle';
                 ctx.globalAlpha = this.alpha;
                 ctx.fillText(this.emoji, 0, 0);
+                
+                // Draw point indicator
+                ctx.shadowBlur = 0;
+                ctx.font = `${Math.floor(this.size * 0.3)}px Arial`;
+                ctx.fillStyle = this.glowColor;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeText(`${this.points}pt`, 0, this.size * 0.6);
+                ctx.fillText(`${this.points}pt`, 0, this.size * 0.6);
                 
                 ctx.restore();
             }
@@ -866,6 +1038,17 @@
             // Create touch effect
             game.touchEffects.push(new TouchEffect(x, y));
             
+            // Check enemy collisions first (they break combo)
+            let enemyHit = false;
+            game.enemies.forEach(enemy => {
+                if (enemy.checkTap(x, y)) {
+                    enemy.destroy(x, y);
+                    enemyHit = true;
+                }
+            });
+            
+            if (enemyHit) return; // Don't check emojis if enemy was hit
+            
             // Check emoji collisions
             let hit = false;
             game.emojis.forEach(emoji => {
@@ -924,10 +1107,36 @@
                 game.lastSpawn = Date.now();
             }
         }
+        
+        function spawnEnemy() {
+            // Spawn enemies less frequently than emojis
+            const enemySpawnRate = Math.max(1500, CONFIG.ENEMY_SPAWN_RATE - (game.level * 100));
+            
+            if (Date.now() - game.lastEnemySpawn > enemySpawnRate) {
+                game.enemies.push(new Enemy());
+                game.lastEnemySpawn = Date.now();
+            }
+        }
 
         function updateUI() {
             // Score display
             document.getElementById('scoreDisplay').textContent = `🔥 ${game.score.toLocaleString()}`;
+            
+            // Time display
+            const timeLeft = Math.max(0, Math.ceil(game.timeRemaining / 1000));
+            const timeDisplay = document.getElementById('timeDisplay');
+            timeDisplay.textContent = `⏰ ${timeLeft}s`;
+            
+            // Change color based on remaining time
+            if (timeLeft <= 5) {
+                timeDisplay.style.color = '#ff0000';
+                timeDisplay.style.animation = 'pulse 0.5s infinite';
+            } else if (timeLeft <= 10) {
+                timeDisplay.style.color = '#ffaa00';
+            } else {
+                timeDisplay.style.color = 'white';
+                timeDisplay.style.animation = 'none';
+            }
             
             // Combo display
             const comboDisplay = document.getElementById('comboDisplay');
@@ -1009,24 +1218,32 @@
             drawBackground();
             
             if (game.running) {
+                // Update time remaining
+                game.timeRemaining = CONFIG.GAME_TIME - (Date.now() - game.gameStartTime);
+                
+                // Check if time is up
+                if (game.timeRemaining <= 0) {
+                    gameOver();
+                    return;
+                }
+                
                 // Spawn emojis
                 spawnEmoji();
                 
+                // Spawn enemies
+                spawnEnemy();
+                
                 // Update game objects
                 game.emojis = game.emojis.filter(emoji => emoji.update());
+                game.enemies = game.enemies.filter(enemy => enemy.update());
                 game.particles = game.particles.filter(particle => particle.update());
                 game.touchEffects = game.touchEffects.filter(effect => effect.update());
                 
                 // Draw everything
                 game.particles.forEach(particle => particle.draw(game.ctx));
                 game.emojis.forEach(emoji => emoji.draw(game.ctx));
+                game.enemies.forEach(enemy => enemy.draw(game.ctx));
                 game.touchEffects.forEach(effect => effect.draw(game.ctx));
-                
-                // Check game over (too many missed emojis)
-                const missedEmojis = game.emojis.filter(emoji => emoji.y > game.height - 50 && !emoji.collected);
-                if (missedEmojis.length > 5) {
-                    gameOver();
-                }
                 
                 updateUI();
             }
@@ -1049,13 +1266,17 @@
             game.maxCombo = 0;
             game.level = 1;
             game.emojis = [];
+            game.enemies = [];
             game.particles = [];
             game.touchEffects = [];
             game.powerUpActive = false;
             game.powerUpEnergy = 0;
             game.lastSpawn = Date.now();
+            game.lastEnemySpawn = Date.now();
             game.screenShake = 0;
             game.rainbowMode = false;
+            game.gameStartTime = Date.now();
+            game.timeRemaining = CONFIG.GAME_TIME;
             
             // Clear timers
             clearTimeout(game.comboTimer);
