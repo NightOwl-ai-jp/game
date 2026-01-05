@@ -336,6 +336,12 @@
     <!-- Power-up Button -->
     <button id="powerUpBtn">⚡ MEGA BOOST ⚡</button>
     
+    <!-- Audio Controls -->
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+        <button id="musicToggle" style="background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 20px; margin-right: 5px; cursor: pointer;">🎵</button>
+        <button id="sfxToggle" style="background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 8px 12px; border-radius: 20px; cursor: pointer;">🔊</button>
+    </div>
+
     <!-- Start Screen -->
     <div id="startScreen" class="screen">
         <div class="title">🔥 EMOJI RUSH 🔥</div>
@@ -366,6 +372,101 @@
     </div>
 
     <script>
+        // ===== AUDIO SYSTEM =====
+        const AUDIO = {
+            context: null,
+            sounds: {},
+            musicEnabled: true,
+            sfxEnabled: true,
+            
+            // Web Audio API で軽量な音を生成
+            init() {
+                try {
+                    this.context = new (window.AudioContext || window.webkitAudioContext)();
+                    this.createSounds();
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            },
+            
+            createSounds() {
+                // タップ音（周波数で生成）
+                this.sounds.tap = this.createTone(800, 0.1, 'sine');
+                this.sounds.combo = this.createTone(1200, 0.15, 'square');
+                this.sounds.powerup = this.createTone(600, 0.3, 'sawtooth');
+                this.sounds.rare = this.createTone(1000, 0.2, 'triangle');
+                this.sounds.legendary = this.createChord([800, 1000, 1200], 0.4);
+            },
+            
+            createTone(frequency, duration, type = 'sine') {
+                return () => {
+                    if (!this.sfxEnabled || !this.context) return;
+                    
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+                    oscillator.type = type;
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+                    
+                    oscillator.start(this.context.currentTime);
+                    oscillator.stop(this.context.currentTime + duration);
+                };
+            },
+            
+            createChord(frequencies, duration) {
+                return () => {
+                    frequencies.forEach(freq => {
+                        this.createTone(freq, duration)();
+                    });
+                };
+            },
+            
+            // 背景音楽（ループする軽量メロディ）
+            startBackgroundMusic() {
+                if (!this.musicEnabled || !this.context) return;
+                
+                const melody = [523, 587, 659, 698, 784, 880, 988, 1047]; // C major scale
+                let noteIndex = 0;
+                
+                const playNote = () => {
+                    if (!this.musicEnabled) return;
+                    
+                    const freq = melody[noteIndex % melody.length];
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.context.destination);
+                    
+                    oscillator.frequency.setValueAtTime(freq, this.context.currentTime);
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.02, this.context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
+                    
+                    oscillator.start(this.context.currentTime);
+                    oscillator.stop(this.context.currentTime + 0.5);
+                    
+                    noteIndex++;
+                    setTimeout(playNote, 600);
+                };
+                
+                playNote();
+            },
+            
+            play(soundName) {
+                if (this.sounds[soundName]) {
+                    this.sounds[soundName]();
+                }
+            }
+        };
+
         // ===== GAME CONFIGURATION =====
         const CONFIG = {
             EMOJI_SPAWN_RATE: 1000,
@@ -522,6 +623,15 @@
                 
                 this.collected = true;
                 
+                // Play sound based on rarity
+                if (this.rarity === 'legendary') {
+                    AUDIO.play('legendary');
+                } else if (this.rarity === 'rare') {
+                    AUDIO.play('rare');
+                } else {
+                    AUDIO.play('tap');
+                }
+                
                 // Add to score with combo multiplier
                 const comboMultiplier = Math.min(game.combo + 1, 10);
                 const finalPoints = Math.floor(this.points * comboMultiplier);
@@ -530,6 +640,11 @@
                 // Increase combo
                 game.combo++;
                 game.maxCombo = Math.max(game.maxCombo, game.combo);
+                
+                // Play combo sound
+                if (game.combo > 1) {
+                    AUDIO.play('combo');
+                }
                 
                 // Reset combo timer
                 clearTimeout(game.comboTimer);
@@ -708,6 +823,20 @@
             document.getElementById('restartBtn').addEventListener('click', startGame);
             document.getElementById('powerUpBtn').addEventListener('click', activatePowerUp);
             
+            // Audio toggle buttons
+            document.getElementById('musicToggle').addEventListener('click', () => {
+                AUDIO.musicEnabled = !AUDIO.musicEnabled;
+                document.getElementById('musicToggle').textContent = AUDIO.musicEnabled ? '🎵' : '🔇';
+                if (AUDIO.musicEnabled && game.running) {
+                    AUDIO.startBackgroundMusic();
+                }
+            });
+            
+            document.getElementById('sfxToggle').addEventListener('click', () => {
+                AUDIO.sfxEnabled = !AUDIO.sfxEnabled;
+                document.getElementById('sfxToggle').textContent = AUDIO.sfxEnabled ? '🔊' : '🔇';
+            });
+            
             // Start animation loop
             requestAnimationFrame(gameLoop);
         }
@@ -758,6 +887,9 @@
             game.powerUpEnergy = 0;
             game.powerUpActive = true;
             game.rainbowMode = true;
+            
+            // Play power-up sound
+            AUDIO.play('powerup');
             
             // Visual effects
             document.body.classList.add('rainbow-mode');
@@ -905,6 +1037,10 @@
         function startGame() {
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('gameOverScreen').classList.add('hidden');
+            
+            // Initialize audio
+            AUDIO.init();
+            AUDIO.startBackgroundMusic();
             
             // Reset game state
             game.running = true;
